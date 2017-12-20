@@ -16,15 +16,12 @@ import Data.Text.Encoding
 import Data.Text
 import qualified JenkinsConfig as JC
 
-jenkinsUrl :: String
-jenkinsUrl = "https://skywalkers-jenkins.build.corp.creditkarma.com"
-
 jobsPath :: String
 jobsPath = "/api/json"
 
 getJenkinsJSON :: JC.JenkinsConfig -> IO String
 getJenkinsJSON config = do
-  jobs <- getJobs jenkinsUrl
+  jobs <- getJobs $ JC.buildUrl config
   return $ getJson $ Items $ createJenkins jobs
 
 getJson :: ToJSON a => a -> String

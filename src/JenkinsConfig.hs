@@ -1,6 +1,7 @@
 module JenkinsConfig (
   JenkinsConfig(protocol, host, username, password),
-  readConfig
+  readConfig,
+  buildUrl
 ) where
 
 import qualified Data.ConfigFile as CF
@@ -13,26 +14,23 @@ data JenkinsConfig = JenkinsConfig {
   password :: String
 } deriving Show
 
-type JenkinsConfigIO = ExceptT CF.CPError IO JenkinsConfig
-
 readConfig :: String -> IO JenkinsConfig
 readConfig fileName =
-    do
---      cp <- CF.readfile CF.emptyCP fileName
-      return $ JenkinsConfig "" "" "" ""
+  do
+    ioConfig <- runExceptT $
+      do
+       cp <- join $ liftIO $ CF.readfile CF.emptyCP fileName
+       p  <- CF.get cp "DEFAULT" "protocol" :: ExceptT CF.CPError IO String
+       h  <- CF.get cp "DEFAULT" "host"     :: ExceptT CF.CPError IO String
+       u  <- CF.get cp "DEFAULT" "username" :: ExceptT CF.CPError IO String
+       pa <- CF.get cp "DEFAULT" "password" :: ExceptT CF.CPError IO String
+       let jc = JenkinsConfig p h u pa
+       return jc
+    eitherIO ioConfig
 
-configIO :: String -> IO CF.ConfigParser
-configIO fileName =
-  CF.readfile CF.emptyCP fileName
+eitherIO :: (Show e) => Either e a -> IO a
+eitherIO (Left e) = error $ show e
+eitherIO (Right a) = return a
 
-
---readConfig :: String -> JenkinsConfigIO
---readConfig fileName =
---    do
---      cp <- join $ liftIO $ CF.readfile CF.emptyCP fileName
---      protocol <- CF.get cp "DEFAULT" "protocol" :: ExceptT CF.CPError IO String
---      host     <- CF.get cp "DEFAULT" "host"     :: ExceptT CF.CPError IO String
---      username <- CF.get cp "DEFAULT" "username" :: ExceptT CF.CPError IO String
---      password <- CF.get cp "DEFAULT" "password" :: ExceptT CF.CPError IO String
---      let jc = JenkinsConfig protocol host username password
---      return jc
+buildUrl :: JenkinsConfig -> String
+buildUrl config = protocol config ++ "://" ++ host config
