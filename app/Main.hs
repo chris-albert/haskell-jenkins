@@ -9,7 +9,7 @@ import Control.Exception
 main :: IO ()
 main = do
   out <- catchAny run
-  print out
+  putStrLn out
 
 run :: IO String
 run = do
